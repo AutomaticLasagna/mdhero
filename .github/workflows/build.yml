@@ -85,7 +85,7 @@ jobs:
         run: cargo test
 
   build:
-    # Personal releases must pass the privacy workflow, not upstream's uploader.
+    # Personal releases follow the project release skill; no automatic uploads.
     if: github.repository == 'vaibhav-kakde-in/mdhero'
     strategy:
       fail-fast: false
