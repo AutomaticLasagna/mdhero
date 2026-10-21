@@ -221,6 +221,9 @@
     "drop": "Suelta para abrir"
   },
   "update": {
+    "saveBeforeUpdate": "Guarda los documentos abiertos antes de instalar una actualización.",
+    "invalidManifest": "El manifiesto de actualización no contiene archivos de instalación compatibles.",
+    "untrustedUpdate": "La actualización no es una versión firmada de esta bifurcación.",
     "downloading": "Descargando actualización… {progress}%",
     "installing": "Instalando actualización…",
     "downloadingShort": "Descargando… {progress}%",

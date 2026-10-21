@@ -721,6 +721,7 @@
     window.addEventListener("scroll", handleScrollForProgress, { passive: true });
     window.addEventListener("beforeunload", saveProgressNow);
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    const updateTimer = window.setInterval(() => { void checkForUpdates(); }, 24 * 60 * 60 * 1000);
 
     // One file-changed listener for the session (#97); which files are watched
     // follows the tabs (open / close / save-as), not the active document.
@@ -760,6 +761,7 @@
     })();
 
     return () => {
+      window.clearInterval(updateTimer);
       document.removeEventListener("focusin", syncHistoryMenu);
       document.removeEventListener("input", syncHistoryMenu);
       stopFileWatcher();

@@ -1,5 +1,6 @@
 import { writable, get } from "svelte/store";
 import { tabStore } from "./tabs";
+import { translate } from "../i18n";
 
 /**
  * In-app download + install of updates via tauri-plugin-updater.
@@ -29,7 +30,7 @@ export async function installUpdate(): Promise<void> {
 
   if (get(updateInstalling)) return;
   if (get(tabStore.tabs).some((tab) => tab.dirty)) {
-    updateError.set("Save your open documents before installing an update.");
+    updateError.set(translate("update.saveBeforeUpdate"));
     return;
   }
 
@@ -51,14 +52,14 @@ export async function installUpdate(): Promise<void> {
     // The signature establishes trust; also restrict the manifest's assets to our fork.
     const platforms = update.rawJson.platforms;
     if (!platforms || typeof platforms !== "object" || Array.isArray(platforms) || !Object.keys(platforms).length) {
-      throw new Error("The update manifest has no supported release assets.");
+      throw new Error(translate("update.invalidManifest"));
     }
     for (const asset of Object.values(platforms)) {
       const url = new URL(asset.url);
       if (url.protocol !== "https:" || url.hostname !== "github.com" || url.port || url.username || url.password ||
           !url.pathname.startsWith("/AutomaticLasagna/mdhero/releases/download/") || url.search || url.hash ||
           typeof asset.signature !== "string" || !asset.signature) {
-        throw new Error("The update is not a signed release from this fork.");
+        throw new Error(translate("update.untrustedUpdate"));
       }
     }
 
@@ -86,7 +87,7 @@ export async function installUpdate(): Promise<void> {
 
     // Downloading may take time; preserve edits made while it was in progress.
     if (get(tabStore.tabs).some((tab) => tab.dirty)) {
-      throw new Error("Save your open documents, then try the update again.");
+      throw new Error(translate("update.saveBeforeUpdate"));
     }
     await update.install();
 

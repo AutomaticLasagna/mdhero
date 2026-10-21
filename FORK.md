@@ -45,7 +45,7 @@ Ask Codex to **prepare a release** or **publish a release**. Codex follows the p
 
 Preparation produces a checked installer, updater signature, checksum, and `latest.json`. Publishing additionally creates a GitHub release when requested. The inherited automatic upload/publish jobs remain disabled in this fork; normal unit and Rust CI checks remain enabled. Kept release files live under `package/<release-tag>/`.
 
-Starting with 0.2.11, the app trusts this fork's updater signing key and accepts update assets only from this fork's GitHub releases. It checks automatically at startup, at most once a day, and offers **Update now**. It checks for unsaved edits before downloading and again before installation; failed signature verification never proceeds to installation. Future releases use `personal-v<major.minor.patch>` tags, with a higher application version in the signed update manifest.
+Starting with 0.2.11, the app trusts this fork's updater signing key and accepts update assets only from this fork's GitHub releases. It checks automatically at startup and daily while open, respects the Settings switch, and offers **Update now**. It checks for unsaved edits before downloading and again before installation; failed signature verification never proceeds to installation. Future releases use `personal-v<major.minor.patch>` tags, with a higher application version in the signed update manifest.
 
 The installed 0.2.10 version needs one manual installer update to receive the new public key and updater permissions. After that, approved signed releases can install from inside the app. Upstream merging, testing, and publishing remain under our control. No installer is run and no file association is changed during development.
 
