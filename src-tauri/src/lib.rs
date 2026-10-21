@@ -119,6 +119,7 @@ pub fn run() {
         .plugin(tauri_plugin_cli::init())
         .manage(watcher::WatcherState::default())
         .manage(OpenedFiles::default())
+        .manage(menu::HistoryMenu::default())
         .invoke_handler(tauri::generate_handler![
             commands::read_markdown_file,
             commands::write_markdown_file,
@@ -136,6 +137,8 @@ pub fn run() {
             single_window::get_open_in_existing_window,
             single_window::set_open_in_existing_window,
             menu::set_menu_language,
+            menu::set_history_menu_state,
+            menu::show_editor_context_menu,
         ])
         .setup(|app| {
             let handle = app.handle().clone();

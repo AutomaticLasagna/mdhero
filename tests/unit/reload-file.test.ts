@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { open } from "@tauri-apps/plugin-dialog";
+import { writable } from "svelte/store";
 
 const invoke = vi.fn();
 const documentSet = vi.fn();
 const updateTabContent = vi.fn();
 const addTab = vi.fn((_path: string) => "tab-1");
 const rebindPath = vi.fn();
+const tabs = writable<{ id: string; filePath: string }[]>([]);
+const switchTab = vi.fn();
 let activeTab: { filePath: string } | null = null;
 
 // Node has no DOM for DOMPurify; the renderer is not under test here.
@@ -17,7 +20,7 @@ vi.mock("../../src/lib/stores/pinned", () => ({ pinnedFolders: { subscribe: (run
 vi.mock("../../src/lib/stores/recents", () => ({ addRecentFile: vi.fn() }));
 vi.mock("../../src/lib/stores/document", () => ({ document: { set: documentSet } }));
 vi.mock("../../src/lib/stores/tabs", () => ({
-  tabStore: { updateTabContent, addTab, rebindPath, setEditing: vi.fn(), getActiveTab: () => activeTab },
+  tabStore: { tabs, switchTab, updateTabContent, addTab, rebindPath, setEditing: vi.fn(), getActiveTab: () => activeTab },
 }));
 
 const { reloadFile, openFile, openFileDialog, saveAsNewDocument, watchFile, unwatchFile } = await import("../../src/lib/tauri/files");
@@ -28,6 +31,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(open).mockReset();
   activeTab = null;
+  tabs.set([]);
   invoke.mockImplementation(async (cmd: string, args: any) => {
     if (cmd === "resolve_path") return args.path;
     if (cmd === "read_markdown_file") return "# from disk";
@@ -37,6 +41,14 @@ beforeEach(() => {
 });
 
 describe("openFileDialog", () => {
+  it("focuses an already-open file without reloading or overwriting its edits", async () => {
+    tabs.set([{ id: "existing", filePath: "/docs/a.md" }]);
+    await openFile("/docs/a.md");
+    expect(switchTab).toHaveBeenCalledWith("existing");
+    expect(calls("read_markdown_file")).toEqual([]);
+    expect(addTab).not.toHaveBeenCalled();
+    expect(documentSet).not.toHaveBeenCalled();
+  });
   it("enables multi-select and opens every selected file", async () => {
     vi.mocked(open).mockResolvedValue(["/docs/a.md", "/docs/b.md"]);
 

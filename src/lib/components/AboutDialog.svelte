@@ -42,7 +42,7 @@
       <div class="dialog-body">
         <div class="about-content">
           <img src={appIcon} class="app-icon" alt="MDHero" width="48" height="48" />
-          <h3 class="app-name">MDHero</h3>
+          <h3 class="app-name">MDHero Personal</h3>
           <p class="app-version">{$t('about.version', { version: appVersion })}</p>
           <p class="app-description">{$t('about.description')}</p>
           <a

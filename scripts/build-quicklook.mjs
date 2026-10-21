@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Builds the self-contained preview.html used by the macOS Quick Look extension.
  *

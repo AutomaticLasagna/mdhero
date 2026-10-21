@@ -20,6 +20,11 @@ export async function saveFile(path: string, content: string): Promise<void> {
 
 export async function openFile(path: string): Promise<void> {
   const absolutePath = await resolvePath(path);
+  const existing = get(tabStore.tabs).find((tab) => tab.filePath === absolutePath);
+  if (existing) {
+    tabStore.switchTab(existing.id);
+    return;
+  }
   const fileName = basename(absolutePath);
   const baseDir = getBaseDir(absolutePath);
 
@@ -61,7 +66,7 @@ export async function openFile(path: string): Promise<void> {
     });
 
     addRecentFile(absolutePath, fileName);
-    getCurrentWindow().setTitle(`${fileName} — MDHero`).catch(() => {});
+    getCurrentWindow().setTitle(`${fileName} — MDHero Personal`).catch(() => {});
   } catch (err) {
     document.set({
       filePath: absolutePath,
@@ -117,7 +122,7 @@ export async function saveAsNewDocument(tabId: string, content: string): Promise
   tabStore.rebindPath(tabId, chosen, fileName);
   watchFile(chosen);
   addRecentFile(chosen, fileName);
-  getCurrentWindow().setTitle(`${fileName} — MDHero`).catch(() => {});
+  getCurrentWindow().setTitle(`${fileName} — MDHero Personal`).catch(() => {});
   return chosen;
 }
 

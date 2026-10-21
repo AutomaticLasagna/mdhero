@@ -7,6 +7,9 @@
   import { patchLines } from "$lib/utils/line-patch";
   import { diffText, editKind, historyFor, type HistoryState, type TextSelection } from "$lib/utils/edit-history";
   import { isMac } from "$lib/utils/platform";
+  import { syncHistoryMenu, type HistoryMenuState } from "$lib/utils/history-menu";
+  import { invoke } from "@tauri-apps/api/core";
+  import { translate } from "$lib/i18n";
 
   let {
     value,
@@ -49,6 +52,7 @@
     if (value !== localValue && document.activeElement !== textareaEl) {
       localValue = value;
       editHistory.recordExternal(value);
+      syncHistoryMenu();
     }
   });
 
@@ -144,21 +148,33 @@
   });
 
   onMount(() => {
-    // The native menu on Linux has no built-in Undo/Redo, so its items send
-    // this event to the focused element instead (see +page.svelte).
+    const element = textareaEl!;
     const onMenuHistory = (e: Event) => {
       e.preventDefault();
       if ((e as CustomEvent).detail === "redo") redo();
       else undo();
     };
-    textareaEl?.addEventListener("mdherohistory", onMenuHistory);
+    const onHistoryState = (e: Event) => {
+      e.preventDefault();
+      Object.assign((e as CustomEvent<HistoryMenuState>).detail, {
+        canUndo: editHistory.canUndo, canRedo: editHistory.canRedo,
+      });
+    };
+    element.addEventListener("mdherohistory", onMenuHistory);
+    element.addEventListener("mdherohistorystate", onHistoryState);
     tick().then(() => {
       try {
         textareaEl?.focus({ preventScroll: true });
       } catch {
         textareaEl?.focus();
       }
+      syncHistoryMenu();
     });
+    return () => {
+      element.removeEventListener("mdherohistory", onMenuHistory);
+      element.removeEventListener("mdherohistorystate", onHistoryState);
+      queueMicrotask(syncHistoryMenu);
+    };
   });
 
   onDestroy(() => {
@@ -180,11 +196,7 @@
   }
 
   // --- Undo / redo (#182) -----------------------------------------------------
-  // Every edit goes into `editHistory`, and Cmd/Ctrl+Z, the Edit menu and the
-  // context menu all undo from it instead of from the textarea's own history.
-  // The app's own edits go through execCommand so the browser still treats them
-  // as editing (it scrolls the caret into view and keeps Undo enabled in the
-  // native menus); `applying` keeps them from being recorded twice.
+  // All entry points share the tab's history; native browser history is separate.
   let selectionBefore: TextSelection = { start: 0, end: 0 };
   let applying = false;
 
@@ -210,6 +222,7 @@
     onChange(localValue);
     updateActiveLine();
     syncBackdropScroll();
+    syncHistoryMenu();
   }
 
   function restore(state: HistoryState | null) {
@@ -254,6 +267,22 @@
 
   function handleCompositionEnd() {
     editHistory.record(textareaEl!.value, selectionBefore, currentSelection(), "type");
+    syncHistoryMenu();
+  }
+
+  async function handleContextMenu(e: MouseEvent) {
+    e.preventDefault();
+    textareaEl?.focus({ preventScroll: true });
+    const keys = ["menu.undo", "menu.redo", "menu.cut", "menu.copy", "menu.paste", "menu.selectAll"] as const;
+    try {
+      await invoke("show_editor_context_menu", {
+        canUndo: editHistory.canUndo,
+        canRedo: editHistory.canRedo,
+        labels: Object.fromEntries(keys.map((key) => [key, translate(key)])),
+      });
+    } catch (error) {
+      console.error("Could not open editor menu", error);
+    }
   }
 
   /** The letter a shortcut was typed with, by layout or, on non-Latin layouts, by key position. */
@@ -323,6 +352,7 @@
       bind:this={textareaEl}
       bind:value={localValue}
       onbeforeinput={handleBeforeInput}
+      oncontextmenu={handleContextMenu}
       oninput={handleInput}
       oncompositionstart={() => (selectionBefore = currentSelection())}
       oncompositionend={handleCompositionEnd}

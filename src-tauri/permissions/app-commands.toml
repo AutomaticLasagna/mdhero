@@ -1,0 +1,21 @@
+[[permission]]
+identifier = "allow-app-commands"
+description = "Preserve the existing local application commands when enabling app ACLs."
+commands.allow = [
+  "read_markdown_file",
+  "write_markdown_file",
+  "resolve_path",
+  "path_exists",
+  "allow_assets",
+  "list_claude_plans",
+  "list_folder_md_files",
+  "quit_app",
+  "show_ai_context_menu",
+  "watch_file",
+  "unwatch_file",
+  "stop_watching",
+  "get_opened_files",
+  "get_open_in_existing_window",
+  "set_open_in_existing_window",
+  "set_menu_language",
+]

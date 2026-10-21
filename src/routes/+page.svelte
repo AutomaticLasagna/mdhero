@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
+  import { historyCommand, syncHistoryMenu } from "$lib/utils/history-menu";
   import { document as docStore } from "$lib/stores/document";
   import { tabStore, HOME_TAB_ID, type Tab } from "$lib/stores/tabs";
   import { initRenderer, renderFull, resolveLocalPath, isMarpDoc } from "$lib/renderer/pipeline";
@@ -615,14 +616,8 @@
     (window as any).__mdhero_find = () => {
       searchVisible = !searchVisible;
     };
-    // Edit > Undo / Redo on Linux, where muda has no built-in items (menu.rs).
-    // The editor keeps its own history and claims the event; any other field
-    // falls back to the browser's undo.
-    const historyCommand = (command: "undo" | "redo") => {
-      const el = document.activeElement;
-      const claimed = el && !el.dispatchEvent(new CustomEvent("mdherohistory", { detail: command, cancelable: true }));
-      if (!claimed) document.execCommand(command);
-    };
+    document.addEventListener("focusin", syncHistoryMenu);
+    document.addEventListener("input", syncHistoryMenu);
     (window as any).__mdhero_undo = () => historyCommand("undo");
     (window as any).__mdhero_redo = () => historyCommand("redo");
     // File > Close Tab (Cmd/Ctrl+W). The menu item declared this accelerator
@@ -744,8 +739,8 @@
       try {
         const { invoke } = await import("@tauri-apps/api/core");
         const openedFiles = await invoke<string[]>("get_opened_files");
-        if (openedFiles.length > 0) {
-          await openFile(openedFiles[0]);
+        for (const path of openedFiles) {
+          await openFile(path);
         }
       } catch {}
 
@@ -765,6 +760,8 @@
     })();
 
     return () => {
+      document.removeEventListener("focusin", syncHistoryMenu);
+      document.removeEventListener("input", syncHistoryMenu);
       stopFileWatcher();
       window.removeEventListener("keydown", handleKeydown);
       window.removeEventListener("keyup", handleKeyup);
@@ -1157,7 +1154,7 @@
       });
       tocVisible.set(false);
       tocEntries.set([]);
-      getCurrentWindow().setTitle("MDHero").catch(() => {});
+      getCurrentWindow().setTitle("MDHero Personal").catch(() => {});
       return;
     }
 
@@ -1179,7 +1176,7 @@
     // mid-edit (#44). Runs once per tab switch, so an explicit exit (Esc) sticks.
     presenting = isMarpDoc(tab.frontmatter) && get(settings).autoPresentMarp && !tab.isEditing;
 
-    getCurrentWindow().setTitle(`${tab.fileName} — MDHero`).catch(() => {});
+    getCurrentWindow().setTitle(`${tab.fileName} — MDHero Personal`).catch(() => {});
 
     const savedScroll = tab.scrollTop;
     tick().then(() => {

@@ -1,12 +1,22 @@
 use std::collections::HashMap;
+use std::sync::Mutex;
 use tauri::{
     menu::{IsMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu},
-    AppHandle, Runtime,
+    AppHandle, Manager, Runtime,
 };
 
 /// Localized display labels for the native menu, keyed by the frontend's
 /// `menu.*` message keys. Missing keys fall back to the English defaults.
 pub type MenuLabels = HashMap<String, String>;
+
+#[derive(Clone, Copy, Default)]
+pub struct HistoryMenuState {
+    can_undo: bool,
+    can_redo: bool,
+}
+
+#[derive(Default)]
+pub struct HistoryMenu(pub Mutex<HistoryMenuState>);
 
 fn tr(labels: &MenuLabels, key: &str, fallback: &str) -> String {
     labels
@@ -111,22 +121,34 @@ pub fn create_menu_with_labels<R: Runtime>(
         ],
     )?;
 
-    // Undo / Redo (#182). muda's built-in items send the platform's own undo
-    // to the webview, which the editor answers from its own history. They are
-    // "Linux: Unsupported" in muda, so Linux gets plain items that ask the
-    // frontend instead. No accelerator there: the menu would take Ctrl+Z away
-    // from the webview, where every text field already handles it.
-    #[cfg(not(target_os = "linux"))]
-    let undo = PredefinedMenuItem::undo(app, predefined_label(labels, "menu.undo"))?;
-    #[cfg(not(target_os = "linux"))]
-    let redo = PredefinedMenuItem::redo(app, predefined_label(labels, "menu.redo"))?;
-    #[cfg(target_os = "linux")]
-    let undo = MenuItem::with_id(app, "undo", tr(labels, "menu.undo", "Undo"), true, None::<&str>)?;
-    #[cfg(target_os = "linux")]
-    let redo = MenuItem::with_id(app, "redo", tr(labels, "menu.redo", "Redo"), true, None::<&str>)?;
-
-    let edit_menu = Submenu::with_items(
+    let history = app
+        .try_state::<HistoryMenu>()
+        .and_then(|state| state.0.lock().ok().map(|value| *value))
+        .unwrap_or_default();
+    // Browser-native Undo/Redo cannot see the history kept across tab switches.
+    let undo = MenuItem::with_id(
         app,
+        "undo",
+        tr(labels, "menu.undo", "Undo"),
+        history.can_undo,
+        Some("CmdOrCtrl+Z"),
+    )?;
+    let redo_shortcut = if cfg!(target_os = "macos") {
+        "Cmd+Shift+Z"
+    } else {
+        "Ctrl+Y"
+    };
+    let redo = MenuItem::with_id(
+        app,
+        "redo",
+        tr(labels, "menu.redo", "Redo"),
+        history.can_redo,
+        Some(redo_shortcut),
+    )?;
+
+    let edit_menu = Submenu::with_id_and_items(
+        app,
+        "edit",
         tr(labels, "menu.edit", "Edit"),
         true,
         &[
@@ -136,10 +158,7 @@ pub fn create_menu_with_labels<R: Runtime>(
             &PredefinedMenuItem::cut(app, predefined_label(labels, "menu.cut"))?,
             &PredefinedMenuItem::copy(app, predefined_label(labels, "menu.copy"))?,
             &PredefinedMenuItem::paste(app, predefined_label(labels, "menu.paste"))?,
-            &PredefinedMenuItem::select_all(
-                app,
-                predefined_label(labels, "menu.selectAll"),
-            )?,
+            &PredefinedMenuItem::select_all(app, predefined_label(labels, "menu.selectAll"))?,
             &PredefinedMenuItem::separator(app)?,
             &MenuItem::with_id(
                 app,
@@ -164,10 +183,7 @@ pub fn create_menu_with_labels<R: Runtime>(
                 Some("CmdOrCtrl+Shift+T"),
             )?,
             &PredefinedMenuItem::separator(app)?,
-            &PredefinedMenuItem::fullscreen(
-                app,
-                predefined_label(labels, "menu.fullscreen"),
-            )?,
+            &PredefinedMenuItem::fullscreen(app, predefined_label(labels, "menu.fullscreen"))?,
         ],
     )?;
 
@@ -193,19 +209,14 @@ pub fn create_menu_with_labels<R: Runtime>(
         tr(labels, "menu.window", "Window"),
         true,
         &[
-            &PredefinedMenuItem::minimize(
-                app,
-                predefined_label(labels, "menu.minimize"),
-            )?,
-            &PredefinedMenuItem::maximize(
-                app,
-                predefined_label(labels, "menu.maximize"),
-            )?,
+            &PredefinedMenuItem::minimize(app, predefined_label(labels, "menu.minimize"))?,
+            &PredefinedMenuItem::maximize(app, predefined_label(labels, "menu.maximize"))?,
         ],
     )?;
 
     #[cfg(not(target_os = "linux"))]
-    let items: [&dyn IsMenuItem<R>; 5] = [&app_menu, &file_menu, &edit_menu, &view_menu, &window_menu];
+    let items: [&dyn IsMenuItem<R>; 5] =
+        [&app_menu, &file_menu, &edit_menu, &view_menu, &window_menu];
     #[cfg(target_os = "linux")]
     let items: [&dyn IsMenuItem<R>; 4] = [&app_menu, &file_menu, &edit_menu, &view_menu];
 
@@ -220,4 +231,73 @@ pub fn create_menu_with_labels<R: Runtime>(
 pub fn set_menu_language(app: tauri::AppHandle, labels: MenuLabels) -> Result<(), String> {
     let menu = create_menu_with_labels(&app, &labels).map_err(|e| e.to_string())?;
     app.set_menu(menu).map(|_| ()).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn set_history_menu_state(
+    app: AppHandle,
+    can_undo: bool,
+    can_redo: bool,
+) -> Result<(), String> {
+    update_history_menu(&app, can_undo, can_redo)
+}
+
+pub fn update_history_menu<R: Runtime>(
+    app: &AppHandle<R>,
+    can_undo: bool,
+    can_redo: bool,
+) -> Result<(), String> {
+    let state = app.state::<HistoryMenu>();
+    *state.0.lock().map_err(|e| e.to_string())? = HistoryMenuState { can_undo, can_redo };
+    if let Some(edit) = app.menu().and_then(|menu| menu.get("edit")) {
+        let menu = edit.as_submenu().ok_or("Edit menu is not a submenu")?;
+        for (id, enabled) in [("undo", can_undo), ("redo", can_redo)] {
+            if let Some(item) = menu.get(id).and_then(|item| item.as_menuitem().cloned()) {
+                item.set_enabled(enabled).map_err(|e| e.to_string())?;
+            }
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn show_editor_context_menu(
+    window: tauri::WebviewWindow,
+    can_undo: bool,
+    can_redo: bool,
+    labels: MenuLabels,
+) -> Result<(), String> {
+    let app = window.app_handle();
+    let menu = Menu::with_items(
+        app,
+        &[
+            &MenuItem::with_id(
+                app,
+                "undo",
+                tr(&labels, "menu.undo", "Undo"),
+                can_undo,
+                None::<&str>,
+            )
+            .map_err(|e| e.to_string())?,
+            &MenuItem::with_id(
+                app,
+                "redo",
+                tr(&labels, "menu.redo", "Redo"),
+                can_redo,
+                None::<&str>,
+            )
+            .map_err(|e| e.to_string())?,
+            &PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?,
+            &PredefinedMenuItem::cut(app, predefined_label(&labels, "menu.cut"))
+                .map_err(|e| e.to_string())?,
+            &PredefinedMenuItem::copy(app, predefined_label(&labels, "menu.copy"))
+                .map_err(|e| e.to_string())?,
+            &PredefinedMenuItem::paste(app, predefined_label(&labels, "menu.paste"))
+                .map_err(|e| e.to_string())?,
+            &PredefinedMenuItem::select_all(app, predefined_label(&labels, "menu.selectAll"))
+                .map_err(|e| e.to_string())?,
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+    window.popup_menu(&menu).map_err(|e| e.to_string())
 }

@@ -1,3 +1,5 @@
+> **MDHero Personal** is AutomaticLasagna's fork. See [FORK.md](FORK.md) for its changes, build commands, and verification. Download links below belong to the original project.
+
 <div align="center">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset=".github/assets/banner-dark.png">

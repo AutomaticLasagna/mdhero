@@ -14,7 +14,7 @@ import { settings } from "./settings";
  * Keep it this way. Anything added to this request is data about the user, and
  * the README promises there is none.
  */
-const RELEASES_ENDPOINT = "https://api.github.com/repos/vaibhav-kakde-in/mdhero/releases/latest";
+const RELEASES_ENDPOINT = "https://api.github.com/repos/AutomaticLasagna/mdhero/releases/latest";
 
 const CHECK_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
 const LAST_CHECK_KEY = "mdhero_update_check";
