@@ -12,7 +12,6 @@
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "test": "svelte-kit sync && vitest run",
     "test:browser": "node tests/browser/personal-fork.mjs",
-    "release:prepare": "node scripts/prepare-private-release.mjs",
     "tauri": "tauri",
     "quicklook": "node scripts/build-quicklook.mjs",
     "quicklook:appex": "./quicklook/build-appex.sh"
