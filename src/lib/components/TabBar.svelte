@@ -1,5 +1,6 @@
 <script lang="ts">
   import { tick } from "svelte";
+  import { scrollTabsWithWheel } from "$lib/utils/tab-wheel";
   import { get } from "svelte/store";
   import { PanelLeft, PanelTop } from "@lucide/svelte";
   import { tabStore, HOME_TAB_ID, type Tab } from "$lib/stores/tabs";
@@ -27,6 +28,22 @@
   const { tabs, activeTabId } = tabStore;
   let dragIndex = $state(-1);
   let overIndex = $state(-1);
+  let tabStrip: HTMLDivElement | undefined = $state();
+
+  $effect(() => {
+    const strip = tabStrip;
+    if (!strip) return;
+    const wheel = (event: WheelEvent) => scrollTabsWithWheel(event, strip, side);
+    strip.addEventListener("wheel", wheel, { passive: false });
+    return () => strip.removeEventListener("wheel", wheel);
+  });
+
+  $effect(() => {
+    $activeTabId;
+    $tabs.length;
+    side;
+    void tick().then(() => tabStrip?.querySelector(".active")?.scrollIntoView({ block: "nearest", inline: "nearest" }));
+  });
   let contextMenuTab = $state<Tab | null>(null);
   let contextMenuPos = $state({ x: 0, y: 0 });
   let contextMenuEl = $state<HTMLElement | null>(null);
@@ -219,7 +236,7 @@
   {#if tab.diskChanged}<span class="tab-disk" title={$t('tabbar.diskChanged')}>⟳</span>{:else if tab.dirty}<span class="tab-dirty" title={$t('tabbar.unsaved')}>•</span>{/if}{tab.fileName}
 {/snippet}
 
-<div class="tabbar" class:side>
+<div class="tabbar" class:side bind:this={tabStrip}>
   <div class="tabbar-inner">
     <!-- Home tab -->
     <div

@@ -1,12 +1,11 @@
-//! Opt-in "open files in the existing window" mode (#71).
+//! "Open files in the existing window" mode (#71), enabled by default in this fork.
 //!
 //! Whether a launch joins the running window has to be decided by the new
 //! process before it builds its own window — long before its webview, and the
 //! settings kept in localStorage, exist. So this one preference lives in a file
 //! Rust reads at startup.
 //!
-//! Off by default: a launch opening its own window stays the behaviour, as the
-//! discussion on #71 asked. On macOS the setting does not apply, since the OS
+//! The user can opt out in Settings. On macOS the setting does not apply, since the OS
 //! already routes a file opened while MDHero runs to the running app
 //! (`RunEvent::Opened`).
 
@@ -40,7 +39,7 @@ pub fn is_enabled(identifier: &str) -> bool {
     prefs_path(identifier)
         .and_then(|path| std::fs::read_to_string(path).ok())
         .map(|json| parse_enabled(&json))
-        .unwrap_or(false)
+        .unwrap_or(true)
 }
 
 /// Whether the single-instance plugin can be registered on this machine.
@@ -143,8 +142,8 @@ mod tests {
     }
 
     #[test]
-    fn no_preference_file_means_off() {
-        assert!(!is_enabled("com.mdhero.test.no-such-identifier"));
+    fn no_preference_file_means_on() {
+        assert!(is_enabled("com.mdhero.test.no-such-identifier"));
     }
 
     #[cfg(any(target_os = "windows", target_os = "linux"))]

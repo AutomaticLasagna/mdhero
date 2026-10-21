@@ -24,9 +24,31 @@ fn main() {
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 fn run() {
     use tauri::menu::WINDOW_SUBMENU_ID;
+    use tauri::Manager;
 
     let app = tauri::test::mock_app();
+    app.manage(mdhero_lib::menu::HistoryMenu::default());
     let menu = mdhero_lib::menu::create_menu(app.handle()).expect("menu should build");
+    app.set_menu(menu.clone()).expect("menu should attach");
+    let history_item = |id: &str| {
+        menu.get("edit")
+            .unwrap()
+            .as_submenu()
+            .unwrap()
+            .get(id)
+            .unwrap()
+            .as_menuitem()
+            .unwrap()
+            .clone()
+    };
+    assert!(!history_item("undo").is_enabled().unwrap());
+    assert!(!history_item("redo").is_enabled().unwrap());
+    mdhero_lib::menu::update_history_menu(app.handle(), true, false).unwrap();
+    assert!(history_item("undo").is_enabled().unwrap());
+    assert!(!history_item("redo").is_enabled().unwrap());
+    mdhero_lib::menu::update_history_menu(app.handle(), false, true).unwrap();
+    assert!(!history_item("undo").is_enabled().unwrap());
+    assert!(history_item("redo").is_enabled().unwrap());
 
     let window_item = menu.get(WINDOW_SUBMENU_ID).unwrap_or_else(|| {
         panic!(
@@ -75,12 +97,15 @@ fn run() {
             (submenu.text().ok()? == "File").then(|| submenu.clone())
         })
         .expect("File submenu should exist");
-    let print = file
-        .get("print")
-        .expect("File > Print should exist");
-    let print = print.as_menuitem().expect("File > Print should be a plain item");
+    let print = file.get("print").expect("File > Print should exist");
+    let print = print
+        .as_menuitem()
+        .expect("File > Print should be a plain item");
     assert_eq!(print.text().unwrap(), "Print...");
-    assert!(print.is_enabled().unwrap(), "File > Print should be enabled");
+    assert!(
+        print.is_enabled().unwrap(),
+        "File > Print should be enabled"
+    );
 
     // A translated menu (Settings → Language) must keep the tiling id: the
     // label changes, the id macOS looks for does not.
@@ -90,6 +115,22 @@ fn run() {
     ]);
     let localized = mdhero_lib::menu::create_menu_with_labels(app.handle(), &labels)
         .expect("localized menu should build");
+    let localized_edit = localized.get("edit").unwrap();
+    let localized_edit = localized_edit.as_submenu().unwrap();
+    assert!(localized_edit
+        .get("redo")
+        .unwrap()
+        .as_menuitem()
+        .unwrap()
+        .is_enabled()
+        .unwrap());
+    assert!(!localized_edit
+        .get("undo")
+        .unwrap()
+        .as_menuitem()
+        .unwrap()
+        .is_enabled()
+        .unwrap());
     let window_item = localized
         .get(WINDOW_SUBMENU_ID)
         .expect("a localized menu must keep the WINDOW_SUBMENU_ID submenu");

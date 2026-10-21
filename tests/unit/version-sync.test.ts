@@ -27,7 +27,7 @@ function cargoTomlVersion(toml: string): string | undefined {
 
 /** The `mdhero` entry in Cargo.lock, which carries its own copy. */
 function cargoLockVersion(lock: string): string | undefined {
-  return lock.match(/name = "mdhero"\nversion = "([^"]+)"/)?.[1];
+  return lock.match(/name = "mdhero"\r?\nversion = "([^"]+)"/)?.[1];
 }
 
 describe("the version is the same in every file that declares it", () => {

@@ -3,6 +3,7 @@
   "version": "0.2.10",
   "description": "",
   "type": "module",
+  "packageManager": "pnpm@10.34.7",
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
@@ -10,6 +11,7 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "test": "svelte-kit sync && vitest run",
+    "test:browser": "node tests/browser/personal-fork.mjs",
     "tauri": "tauri",
     "quicklook": "node scripts/build-quicklook.mjs",
     "quicklook:appex": "./quicklook/build-appex.sh"
@@ -45,6 +47,7 @@
     "@types/markdown-it": "^14.2.0",
     "@types/node": "^22.20.1",
     "autoprefixer": "^10.5.4",
+    "playwright": "1.64.1",
     "postcss": "^8.5.26",
     "svelte": "^5.56.10",
     "svelte-check": "^4.7.6",

@@ -5,6 +5,8 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
+    "allow-history-menu",
+    "allow-app-commands",
     "opener:default",
     {
       "identifier": "opener:allow-open-path",

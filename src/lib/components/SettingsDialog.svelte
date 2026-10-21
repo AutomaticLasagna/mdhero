@@ -11,7 +11,7 @@
   // Not in the settings store: a new launch decides whether to join this
   // window before its webview exists, so Rust owns this one (#71).
   const showWindowMode = !isMac();
-  let openInExistingWindow = $state(false);
+  let openInExistingWindow = $state(true);
 
   $effect(() => {
     if (visible && showWindowMode) {

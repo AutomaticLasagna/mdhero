@@ -48,7 +48,7 @@ describe("the update check sends nothing about the user", () => {
     expect(fetchMock).toHaveBeenCalledOnce();
     const url = new URL(fetchMock.mock.calls[0][0]);
     expect(url.origin).toBe("https://api.github.com");
-    expect(url.pathname).toBe("/repos/vaibhav-kakde-in/mdhero/releases/latest");
+    expect(url.pathname).toBe("/repos/AutomaticLasagna/mdhero/releases/latest");
     expect(url.search).toBe("");
   });
 

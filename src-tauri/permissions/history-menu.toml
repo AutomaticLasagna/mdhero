@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-history-menu"
+description = "Update Undo/Redo availability and show the editor context menu."
+commands.allow = ["set_history_menu_state", "show_editor_context_menu"]
