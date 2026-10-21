@@ -3,17 +3,6 @@
   import { installUpdate, updateInstalling, updateProgress, updateError } from "$lib/stores/autoUpdate";
   import { t } from "$lib/i18n";
 
-  async function openDownload() {
-    const target = $updateAvailable?.download || $updateAvailable?.url;
-    if (!target) return;
-    try {
-      const { openUrl } = await import("@tauri-apps/plugin-opener");
-      await openUrl(target);
-    } catch {
-      window.open(target, "_blank");
-    }
-  }
-
   async function openReleaseNotes() {
     if (!$updateAvailable?.url) return;
     try {
@@ -52,7 +41,7 @@
       {#if $updateInstalling}
         <!-- progress shown in the title while installing -->
       {:else if $updateError}
-        <button class="banner-btn primary" onclick={openDownload}>{$t('update.downloadManually')}</button>
+        <button class="banner-btn primary" onclick={installUpdate}>{$t('update.updateNow')}</button>
         <button class="banner-btn dismiss" onclick={dismissUpdate}>{$t('update.later')}</button>
       {:else}
         {#if $updateAvailable.url}

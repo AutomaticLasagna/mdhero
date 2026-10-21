@@ -1,4 +1,5 @@
 import { writable, get } from "svelte/store";
+import { tabStore } from "./tabs";
 
 /**
  * In-app download + install of updates via tauri-plugin-updater.
@@ -27,14 +28,19 @@ export async function installUpdate(): Promise<void> {
   }
 
   if (get(updateInstalling)) return;
+  if (get(tabStore.tabs).some((tab) => tab.dirty)) {
+    updateError.set("Save your open documents before installing an update.");
+    return;
+  }
 
   updateError.set(null);
   updateInstalling.set(true);
   updateProgress.set(-1);
 
+  let update: import("@tauri-apps/plugin-updater").Update | null = null;
   try {
     const { check } = await import("@tauri-apps/plugin-updater");
-    const update = await check();
+    update = await check({ timeout: 15000 });
 
     if (!update) {
       updateError.set("No update available.");
@@ -42,10 +48,24 @@ export async function installUpdate(): Promise<void> {
       return;
     }
 
+    // The signature establishes trust; also restrict the manifest's assets to our fork.
+    const platforms = update.rawJson.platforms;
+    if (!platforms || typeof platforms !== "object" || Array.isArray(platforms) || !Object.keys(platforms).length) {
+      throw new Error("The update manifest has no supported release assets.");
+    }
+    for (const asset of Object.values(platforms)) {
+      const url = new URL(asset.url);
+      if (url.protocol !== "https:" || url.hostname !== "github.com" || url.port || url.username || url.password ||
+          !url.pathname.startsWith("/AutomaticLasagna/mdhero/releases/download/") || url.search || url.hash ||
+          typeof asset.signature !== "string" || !asset.signature) {
+        throw new Error("The update is not a signed release from this fork.");
+      }
+    }
+
     let downloaded = 0;
     let contentLength = 0;
 
-    await update.downloadAndInstall((event) => {
+    await update.download((event) => {
       switch (event.event) {
         case "Started":
           contentLength = event.data.contentLength ?? 0;
@@ -64,6 +84,12 @@ export async function installUpdate(): Promise<void> {
       }
     });
 
+    // Downloading may take time; preserve edits made while it was in progress.
+    if (get(tabStore.tabs).some((tab) => tab.dirty)) {
+      throw new Error("Save your open documents, then try the update again.");
+    }
+    await update.install();
+
     // Installed to disk — relaunch onto the new version. On Windows the NSIS
     // installer (installMode: passive) handles the swap + relaunch itself, so
     // this may not return; calling relaunch is still correct on macOS.
@@ -71,6 +97,8 @@ export async function installUpdate(): Promise<void> {
     await relaunch();
   } catch (err) {
     updateError.set(err instanceof Error ? err.message : String(err));
+  } finally {
+    await update?.close().catch(() => {});
     updateInstalling.set(false);
   }
 }

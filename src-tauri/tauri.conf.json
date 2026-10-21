@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "MDHero Personal",
-  "version": "0.2.10",
+  "version": "0.2.11",
   "identifier": "com.automaticlasagna.mdhero",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -63,7 +63,7 @@
       ]
     },
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ4MkY2OUE5MDM5N0ZCQTgKUldTbys1Y0RxV2t2U0d5TUQ5SU42amVWVWlTUGhTRXBydTZnQXNHL0VHNFM4Z2VMazh3Nm9qcDgK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDRDRjE1MzhFOUEwMkQ3RkIKUldUNzF3S2FqbFB4VEV2N2EvdGlkK29rMllpM25HTzl6Y1pMcVRsTEsvTElCcHZDbGVxaTlKeHoK",
       "endpoints": [
         "https://github.com/AutomaticLasagna/mdhero/releases/latest/download/latest.json"
       ],
