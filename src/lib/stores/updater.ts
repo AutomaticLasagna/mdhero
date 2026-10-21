@@ -65,8 +65,9 @@ async function fetchLatestRelease(): Promise<UpdateInfo | null> {
   const data = await res.json();
   const tag: string = data?.tag_name ?? "";
   const url: string = data?.html_url ?? "";
-  if (!tag || !url) return null;
-  return { version: tag.replace(/^v/, ""), url };
+  const version = tag.match(/^personal-v(\d+\.\d+\.\d+)$/)?.[1];
+  if (!version || url !== `https://github.com/AutomaticLasagna/mdhero/releases/tag/${tag}`) return null;
+  return { version, url };
 }
 
 /**

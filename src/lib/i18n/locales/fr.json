@@ -221,6 +221,9 @@
     "drop": "Déposez pour ouvrir"
   },
   "update": {
+    "saveBeforeUpdate": "Enregistrez vos documents ouverts avant d’installer une mise à jour.",
+    "invalidManifest": "Le manifeste de mise à jour ne contient aucun fichier d’installation compatible.",
+    "untrustedUpdate": "La mise à jour n’est pas une version signée de ce fork.",
     "downloading": "Téléchargement de la mise à jour… {progress}%",
     "installing": "Installation de la mise à jour…",
     "downloadingShort": "Téléchargement… {progress}%",

@@ -32,7 +32,8 @@ afterEach(() => {
 });
 
 function release(tag: string) {
-  return { ok: true, json: async () => ({ tag_name: tag, html_url: `https://github.com/vaibhav-kakde-in/mdhero/releases/tag/${tag}` }) };
+  const forkTag = `personal-${tag}`;
+  return { ok: true, json: async () => ({ tag_name: forkTag, html_url: `https://github.com/AutomaticLasagna/mdhero/releases/tag/${forkTag}` }) };
 }
 
 async function load() {
@@ -66,6 +67,17 @@ describe("the update check sends nothing about the user", () => {
 });
 
 describe("the notification still works", () => {
+  it("ignores upstream URLs and non-versioned tags", async () => {
+    for (const data of [
+      { tag_name: "personal-v0.2.11", html_url: "https://github.com/vaibhav-kakde-in/mdhero/releases/tag/v0.2.11" },
+      { tag_name: "personal-v0.2.10-1", html_url: "https://github.com/AutomaticLasagna/mdhero/releases/tag/personal-v0.2.10-1" },
+    ]) {
+      fetchMock.mockResolvedValue({ ok: true, json: async () => data });
+      const { checkForUpdates, updateAvailable } = await load();
+      await checkForUpdates(true);
+      expect(get(updateAvailable)).toBeNull();
+    }
+  });
   it("announces a newer release", async () => {
     fetchMock.mockResolvedValue(release("v0.2.11"));
     const { checkForUpdates, updateAvailable } = await load();

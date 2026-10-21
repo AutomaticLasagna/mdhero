@@ -221,6 +221,9 @@
     "drop": "Zum Öffnen ablegen"
   },
   "update": {
+    "saveBeforeUpdate": "Speichern Sie Ihre offenen Dokumente, bevor Sie ein Update installieren.",
+    "invalidManifest": "Das Update-Manifest enthält keine unterstützten Installationsdateien.",
+    "untrustedUpdate": "Das Update ist keine signierte Version dieses Forks.",
     "downloading": "Update wird heruntergeladen… {progress}%",
     "installing": "Update wird installiert…",
     "downloadingShort": "Wird heruntergeladen… {progress}%",

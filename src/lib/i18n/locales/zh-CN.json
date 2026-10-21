@@ -220,6 +220,9 @@
     "drop": "拖放以打开"
   },
   "update": {
+    "saveBeforeUpdate": "请先保存打开的文档，再安装更新。",
+    "invalidManifest": "更新清单中没有受支持的安装文件。",
+    "untrustedUpdate": "此更新不是来自本分支的签名版本。",
     "downloading": "正在下载更新… {progress}%",
     "installing": "正在安装更新…",
     "downloadingShort": "下载中… {progress}%",

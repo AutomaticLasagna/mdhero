@@ -221,6 +221,9 @@
     "drop": "Drop to open"
   },
   "update": {
+    "saveBeforeUpdate": "Save your open documents before installing an update.",
+    "invalidManifest": "The update manifest has no supported release assets.",
+    "untrustedUpdate": "The update is not a signed release from this fork.",
     "downloading": "Downloading update… {progress}%",
     "installing": "Installing update…",
     "downloadingShort": "Downloading… {progress}%",
