@@ -29,7 +29,7 @@ cargo test --manifest-path src-tauri/Cargo.toml
 pnpm build
 pnpm exec playwright install chromium
 pnpm test:browser
-pnpm tauri build --bundles nsis
+pnpm release:prepare
 ```
 
 The browser test serves the production `build/` directory and mocks Tauri file/menu IPC. It checks the real frontend without changing documents on disk. `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` can select an already-installed Chromium. It does not replace a native Windows interaction check.
@@ -42,6 +42,14 @@ Two existing checks needed Windows compatibility fixes: CRLF handling in the ver
 
 ## Distribution
 
-Windows installer output: `src-tauri/target/release/bundle/nsis/`.
+For distributable Windows x64 builds, commit your source changes, install 7-Zip in Program Files, then run **`pnpm release:prepare`**. It builds with generic Rust compiler paths, lists and validates the NSIS archive before extraction, checks every extracted file against the reviewed payload allowlist, scans UTF-8 and UTF-16 strings for local/home paths and recognizable credential patterns, and verifies the packaged executable matches the new build except for Tauri's NSIS marker.
+
+Only after every check passes does it create a new folder under `src-tauri/target/verified-releases/` containing the installer, `SHA256SUMS.txt`, and `privacy-report.json`. The report contains only source commit, platform, hashes, filenames, and check names. Filenames already use GitHub-compatible dots instead of spaces. Build logs and extracted audit files stay in ignored `src-tauri/target/privacy-work/`; never upload that directory.
+
+Use only that verified folder for a release, and smoke-test its installer before publication. A failed build, missing 7-Zip, unexpected archive file, leaked path, recognized credential, or changed source stops preparation without creating a verified folder. Old verified folders are retained; select the folder printed by the current successful run. Do not publish a raw `pnpm tauri build` output.
+
+The manual **Prepare privacy-checked Windows release** GitHub Actions workflow runs the same command and uploads only the verified folder as a workflow artifact. It has read-only repository permissions and does not publish a GitHub release. The inherited upstream installer-upload and publishing jobs are disabled in this fork, including on `v*` tags; unit and Rust CI checks remain enabled.
+
+The scanner is a conservative guard, not proof that arbitrary personal text or every possible secret has been detected. Keep private documents and credentials out of application resources, review changes to resources/environment configuration, and review the release notes separately. Public project attribution and GitHub usernames are not stripped. This process currently covers Windows x64 NSIS installers only.
 
 No installer is run automatically and no default file association is changed during development. Windows builds are unsigned. Before publishing signed in-app updates, replace the inherited updater public key with this fork's own key and configure its release signing; until then, distribute builds manually. No update endpoint points at upstream releases.
